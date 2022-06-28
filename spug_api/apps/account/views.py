@@ -2,12 +2,14 @@
 # Copyright: (c) <spug.dev@gmail.com>
 # Released under the AGPL-3.0 License.
 from django.core.cache import cache
+from django.conf import settings
 from libs.mixins import AdminView, View
 from libs import JsonParser, Argument, human_datetime, json_response
 from libs.utils import get_request_real_ip, generate_random_str
 from libs.spug import send_login_wx_code
 from apps.account.models import User, Role, History
 from apps.setting.utils import AppSetting
+from apps.account.utils import verify_password
 from libs.ldap import LDAP
 import ipaddress
 import time
@@ -44,6 +46,8 @@ class UserView(AdminView):
                 user = User.objects.get(pk=form.id)
                 user.update_by_dict(form)
             else:
+                if not verify_password(password):
+                    return json_response(error='请设置至少8位包含数字、小写和大写字母的新密码')
                 user = User.objects.create(
                     password_hash=User.make_password(password),
                     created_by=request.user,
@@ -62,6 +66,8 @@ class UserView(AdminView):
         if error is None:
             user = User.objects.get(pk=form.id)
             if form.password:
+                if not verify_password(form.password):
+                    return json_response(error='请设置至少8位包含数字、小写和大写字母的新密码')
                 user.token_expired = 0
                 user.password_hash = User.make_password(form.pop('password'))
             if form.is_active is not None:
@@ -157,8 +163,10 @@ class SelfView(View):
             if form.old_password and form.new_password:
                 if request.user.type == 'ldap':
                     return json_response(error='LDAP账户无法修改密码')
-                if len(form.new_password) < 6:
-                    return json_response(error='请设置至少6位的新密码')
+
+                if not verify_password(form.new_password):
+                    return json_response(error='请设置至少8位包含数字、小写和大写字母的新密码')
+
                 if request.user.verify_password(form.old_password):
                     request.user.password_hash = User.make_password(form.new_password)
                     request.user.token_expired = 0
@@ -238,7 +246,7 @@ def handle_user_info(request, user, captcha):
     x_real_ip = get_request_real_ip(request.headers)
     token_isvalid = user.access_token and len(user.access_token) == 32 and user.token_expired >= time.time()
     user.access_token = user.access_token if token_isvalid else uuid.uuid4().hex
-    user.token_expired = time.time() + 8 * 60 * 60
+    user.token_expired = time.time() + settings.TOKEN_TTL
     user.last_login = human_datetime()
     user.last_ip = x_real_ip
     user.save()

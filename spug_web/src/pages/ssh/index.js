@@ -213,7 +213,6 @@ function WebSSH(props) {
     '/____// .___/ \\__,_/ \\__, /    |__/|__/ \\___//_.___/   \\__/ \\___//_/   /_/ /_/ /_//_//_/ /_/ \\__,_//_/   \n' +
     '     /_/            /____/                                                                               \n'
 
-  console.log(sshMode)
   return hasPermission('host.console.view|host.console.list') ? (
     <div className={styles.container} onMouseUp={() => posX = 0} onMouseMove={handleMouseMove}>
       <div className={styles.sider} style={{width}}>
@@ -227,7 +226,7 @@ function WebSSH(props) {
             <Button icon={<SyncOutlined/>} type="link" loading={fetching} onClick={fetchNodes}/>
             {treeData.length > 0 ? (
               <Tree.DirectoryTree
-                defaultExpandAll
+                defaultExpandAll={treeData.length > 0 && treeData < 5}
                 expandAction="doubleClick"
                 treeData={treeData}
                 icon={renderIcon}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { observer } from 'mobx-react';
-import { Form, Input, Select, Modal, Button } from 'antd';
+import { Form, Input, Select, Modal, Button, Radio } from 'antd';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
 import { LinkButton, ACEditor } from 'components';
 import TemplateSelector from '../exec/task/TemplateSelector';
@@ -43,6 +43,12 @@ export default observer(function () {
     Object.assign(store.record, form.getFieldsValue(), {command: cleanCommand(command)})
   }
 
+  function handleSelect(tpl) {
+    const {interpreter, body} = tpl;
+    setCommand(body)
+    form.setFieldsValue({interpreter})
+  }
+
   let modePlaceholder;
   switch (store.record.rst_notify.mode) {
     case '0':
@@ -79,10 +85,21 @@ export default observer(function () {
         <Input placeholder="请输入任务名称"/>
       </Form.Item>
       <Form.Item required label="任务内容" extra={<LinkButton onClick={() => setShowTmp(true)}>从模板添加</LinkButton>}>
-        <ACEditor mode="sh" value={command} width="100%" height="150px" onChange={setCommand}/>
+        <Form.Item noStyle name="interpreter">
+          <Radio.Group buttonStyle="solid" style={{marginBottom: 12}}>
+            <Radio.Button value="sh" style={{width: 80, textAlign: 'center'}}>Shell</Radio.Button>
+            <Radio.Button value="python" style={{width: 80, textAlign: 'center'}}>Python</Radio.Button>
+          </Radio.Group>
+        </Form.Item>
+        <Form.Item noStyle shouldUpdate>
+          {({getFieldValue}) => (
+            <ACEditor mode={getFieldValue('interpreter')} value={command} width="100%" height="150px"
+                      onChange={setCommand}/>
+          )}
+        </Form.Item>
       </Form.Item>
       <Form.Item label="失败通知" extra={(
-          <span>
+        <span>
             任务执行失败告警通知，
             <a target="_blank" rel="noopener noreferrer"
                href="https://spug.cc/docs/use-problem#use-dd">钉钉收不到通知？</a>
@@ -109,7 +126,7 @@ export default observer(function () {
       <Form.Item shouldUpdate wrapperCol={{span: 14, offset: 6}}>
         {() => <Button disabled={canNext()} type="primary" onClick={handleNext}>下一步</Button>}
       </Form.Item>
-      {showTmp && <TemplateSelector onOk={({body}) => setCommand(body)} onCancel={() => setShowTmp(false)}/>}
+      {showTmp && <TemplateSelector onOk={handleSelect} onCancel={() => setShowTmp(false)}/>}
     </Form>
   )
 })

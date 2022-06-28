@@ -189,7 +189,7 @@ def fetch_host_extend(ssh):
     with ssh:
         code, out = ssh.exec_command_raw('nproc')
         if code != 0:
-            code, out = ssh.exec_command_raw("grep -c 'model name' /proc/cpuinfo")
+            code, out = ssh.exec_command_raw("grep -c '^processor' /proc/cpuinfo")
         if code == 0:
             response['cpu'] = int(out.strip())
 
@@ -202,6 +202,8 @@ def fetch_host_extend(ssh):
         code, out = ssh.exec_command_raw('hostname -I')
         if code == 0:
             for ip in out.strip().split():
+                if len(ip) > 15:   # ignore ipv6
+                    continue
                 if ipaddress.ip_address(ip).is_global:
                     if len(public_ip_address) < 10:
                         public_ip_address.add(ip)
